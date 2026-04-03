@@ -39,6 +39,25 @@ async def main():
         print(f"Number of user programs: {len(rows)}")
         for program in rows:
             print(f"- {program.get('title', 'Untitled')}")
+
+        print("\nFetching training history...")
+        history = await api.get_training_history()
+        dates = sorted(history.get('data', {}).keys(), reverse=True)
+        print(f"Number of days with workouts: {len(dates)}")
+        for date in dates[:3]:  # Show last 3 days with workouts
+            workouts = history['data'][date]
+            print(f"\nDate: {date}")
+            for workout in workouts:
+                print(f"  Workout: {workout.get('name')} ({workout.get('title')})")
+                for record in workout.get('records', []):
+                    print(f"    - {record.get('name')}: {len(record.get('sets', []))} sets")
+
+        print("\nFetching custom exercises...")
+        custom_exercises = await api.list_custom_exercises()
+        exercises = custom_exercises.get('data', [])
+        print(f"Number of custom exercises: {len(exercises)}")
+        for exercise in exercises[:5]:
+            print(f"- {exercise.get('name')}")
             
     except BoostcampAuthException as e:
         print(f"Authentication Error: {e}")

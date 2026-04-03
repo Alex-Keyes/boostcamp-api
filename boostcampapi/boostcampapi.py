@@ -32,6 +32,46 @@ class BoostcampEndpoints(object):
     def create_exercise_endpoint(cls) -> str:
         return cls.BASE_URL + "/user_exercise/create"
 
+    @classmethod
+    def get_training_history_endpoint(cls) -> str:
+        return cls.BASE_URL + "/programs/history"
+
+    @classmethod
+    def get_payment_history_endpoint(cls) -> str:
+        return cls.BASE_URL + "/users/payment_history_get"
+
+    @classmethod
+    def list_custom_exercises_endpoint(cls) -> str:
+        return cls.BASE_URL + "/user_exercise/list"
+
+    @classmethod
+    def list_all_programs_endpoint(cls) -> str:
+        return cls.BASE_URL + "/programs/list"
+
+    @classmethod
+    def get_program_details_endpoint(cls) -> str:
+        return cls.BASE_URL + "/programs/get"
+
+    @classmethod
+    def list_blogs_endpoint(cls) -> str:
+        return cls.BASE_URL + "/blogs/list"
+
+    @classmethod
+    def get_home_summary_endpoint(cls) -> str:
+        return cls.BASE_URL + "/home/topSection"
+
+    @classmethod
+    def get_home_programs_endpoint(cls) -> str:
+        return cls.BASE_URL + "/home/programs"
+
+    @classmethod
+    def get_home_chart_endpoint(cls) -> str:
+        return cls.BASE_URL + "/home/chart"
+
+    @classmethod
+    def get_home_muscle_endpoint(cls) -> str:
+        return cls.BASE_URL + "/home/muscle"
+
 class BoostcampAuthException(Exception):
     pass
 
@@ -176,3 +216,63 @@ class BoostcampAPI(object):
     async def list_user_programs(self) -> Dict[str, Any]:
         """Returns the list of programs the user is enrolled in."""
         return await self._post(BoostcampEndpoints.get_programs_endpoint())
+
+    async def get_training_history(self, timezone_offset: int = -300) -> Dict[str, Any]:
+        """Returns the user's training history.
+        
+        Args:
+            timezone_offset: The timezone offset in minutes (e.g., -300 for EST).
+        """
+        payload = {"timezone_offset": timezone_offset}
+        return await self._post(BoostcampEndpoints.get_training_history_endpoint(), payload)
+
+    async def get_payment_history(self) -> Dict[str, Any]:
+        """Returns the user's payment history."""
+        return await self._post(BoostcampEndpoints.get_payment_history_endpoint())
+
+    async def list_custom_exercises(self) -> Dict[str, Any]:
+        """Returns the list of custom exercises created by the user."""
+        return await self._post(BoostcampEndpoints.list_custom_exercises_endpoint())
+
+    async def list_all_programs(self, page: int = 1, page_size: int = 10, keyword: Optional[str] = None) -> Dict[str, Any]:
+        """Returns a paginated list of all available programs on Boostcamp."""
+        payload = {
+            "page": page,
+            "pageSize": page_size
+        }
+        if keyword:
+            payload["keyword"] = keyword
+        return await self._post(BoostcampEndpoints.list_all_programs_endpoint(), payload)
+
+    async def get_program_details(self, program_id: str) -> Dict[str, Any]:
+        """Returns detailed information about a specific program."""
+        payload = {"id": program_id}
+        return await self._post(BoostcampEndpoints.get_program_details_endpoint(), payload)
+
+    async def list_blogs(self, page: int = 1, page_size: int = 10) -> Dict[str, Any]:
+        """Returns a paginated list of blog posts."""
+        payload = {
+            "page": page,
+            "pageSize": page_size
+        }
+        return await self._post(BoostcampEndpoints.list_blogs_endpoint(), payload)
+
+    async def get_home_summary(self, timezone_offset: int = -300) -> Dict[str, Any]:
+        """Returns dashboard summary statistics (total workouts, weight, streak)."""
+        payload = {"timezone_offset": timezone_offset}
+        return await self._post(BoostcampEndpoints.get_home_summary_endpoint(), payload)
+
+    async def get_home_programs(self, timezone_offset: int = -300) -> Dict[str, Any]:
+        """Returns summary of active/recent user programs."""
+        payload = {"timezone_offset": timezone_offset}
+        return await self._post(BoostcampEndpoints.get_home_programs_endpoint(), payload)
+
+    async def get_home_chart(self, timezone_offset: int = -300) -> Dict[str, Any]:
+        """Returns training volume chart data."""
+        payload = {"timezone_offset": timezone_offset}
+        return await self._post(BoostcampEndpoints.get_home_chart_endpoint(), payload)
+
+    async def get_home_muscle(self, timezone_offset: int = -300) -> Dict[str, Any]:
+        """Returns muscle group distribution data."""
+        payload = {"timezone_offset": timezone_offset}
+        return await self._post(BoostcampEndpoints.get_home_muscle_endpoint(), payload)

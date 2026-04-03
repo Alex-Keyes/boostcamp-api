@@ -57,11 +57,69 @@ The app uses the Firebase Identity Toolkit to exchange credentials for a token.
 - **Method:** `POST`
 - **Description:** Likely used to log a completed exercise or set.
 
-### 4. Create Program (User)
+### 4. List Custom Exercises
+- **URL:** `/user_exercise/list`
+- **Method:** `POST`
+- **Description:** Returns a list of custom exercises created by the user.
+
+### 5. Get Training History
+- **URL:** `/programs/history`
+- **Method:** `POST`
+- **Payload:** `{"timezone_offset": -300}`
+- **Description:** Returns the user's training history, grouped by date.
+
+### 6. Get Payment History
+- **URL:** `/users/payment_history_get`
+- **Method:** `POST`
+- **Description:** Returns the user's subscription and order history.
+
+### 7. List All Programs
+- **URL:** `/programs/list`
+- **Method:** `POST`
+- **Payload:** `{"page": 1, "pageSize": 10, "keyword": "strength"}`
+- **Description:** Returns a paginated list of all available programs on Boostcamp.
+
+### 8. Get Program Details
+- **URL:** `/programs/get`
+- **Method:** `POST`
+- **Payload:** `{"id": "PROGRAM_UUID"}`
+- **Description:** Returns detailed information about a specific program.
+
+### 9. List Blog Posts
+- **URL:** `/blogs/list`
+- **Method:** `POST`
+- **Payload:** `{"page": 1, "pageSize": 10}`
+- **Description:** Returns a paginated list of blog posts.
+
+### 10. Get Home Summary
+- **URL:** `/home/topSection`
+- **Method:** `POST`
+- **Payload:** `{"timezone_offset": -300}`
+- **Description:** Returns dashboard summary statistics like total workouts, total hours, and week streak.
+
+### 11. Get Home Programs
+- **URL:** `/home/programs`
+- **Method:** `POST`
+- **Payload:** `{"timezone_offset": -300}`
+- **Description:** Returns a summary of active or recently used programs.
+
+### 12. Get Home Volume Chart
+- **URL:** `/home/chart`
+- **Method:** `POST`
+- **Payload:** `{"timezone_offset": -300}`
+- **Description:** Returns total training volume data points for charting.
+
+### 13. Get Home Muscle Distribution
+- **URL:** `/home/muscle`
+- **Method:** `POST`
+- **Payload:** `{"timezone_offset": -300}`
+- **Description:** Returns data on the distribution of work across different muscle groups.
+
+### 14. Create Program (User)
 - **URL:** `/programs/my-programs/create-program`
 - **Method:** `POST`
 
-### 5. Other Potential Endpoints
+### 15. Other Potential Endpoints
 Found in source code:
 - `user/updateCode`
 - `user/config/create`
