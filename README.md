@@ -13,14 +13,14 @@ pip install -e .
 ```
 
 ## Usage
-The API uses your Boostcamp email and password.
+**Note:** This library requires a standard Boostcamp **email and password**. It does not support direct OAuth (Google/Apple) login.
 
 ### Note for OAuth Users (Google/Apple Login)
-If you normally log in via Google or Apple, you may not have a password set. To use this API:
+If you normally log in via Google or Apple, you **must** set a password for your account to use this API:
 1. Go to the [Boostcamp Login Page](https://www.boostcamp.app/login).
 2. Enter your email and click **"Forgot Password?"**.
 3. Follow the link in your email to set a password.
-4. Use that password with this library.
+4. Use that email and new password with this library.
 
 Alternatively, you can trigger the reset email via this library:
 ```python
