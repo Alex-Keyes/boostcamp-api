@@ -6,8 +6,26 @@
 ## Authentication
 Authentication is handled via a Firebase ID Token passed in the `authorization` header.
 
-**Header Format:**
-`authorization: FirebaseIdToken:<YOUR_TOKEN>`
+### Manual Token Retrieval
+1. Log in to the Boostcamp web app.
+2. Inspect the network tab for requests to `newapi.boostcamp.app`.
+3. Extract the `Authorization` header value: `FirebaseIdToken:<YOUR_TOKEN>`.
+
+### Automated Login (Re-engineered)
+The app uses the Firebase Identity Toolkit to exchange credentials for a token.
+
+- **Endpoint:** `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=<API_KEY>`
+- **API Key:** `AIzaSyAEJcoGF-5ueF3bvaujcJm2PUV7RHKQwTw`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "email": "USER_EMAIL",
+    "password": "USER_PASSWORD",
+    "returnSecureToken": true
+  }
+  ```
+- **Response:** Returns `idToken`, which is used in the `Authorization` header.
 
 ## Endpoints
 

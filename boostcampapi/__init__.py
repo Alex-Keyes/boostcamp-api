@@ -3,6 +3,7 @@ from .boostcampapi import (
     BoostcampEndpoints,
     BoostcampAuthException,
     RequestFailedException,
+    LoginFailedException,
 )
 
 __all__ = [
@@ -10,4 +11,5 @@ __all__ = [
     "BoostcampEndpoints",
     "BoostcampAuthException",
     "RequestFailedException",
+    "LoginFailedException",
 ]
