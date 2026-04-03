@@ -18,6 +18,7 @@ class BoostcampEndpoints(object):
     BASE_URL = "https://newapi.boostcamp.app/api/www"
     FIREBASE_API_KEY = "AIzaSyAEJcoGF-5ueF3bvaujcJm2PUV7RHKQwTw"
     FIREBASE_LOGIN_URL = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key={FIREBASE_API_KEY}"
+    FIREBASE_RESET_URL = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/getOobConfirmationCode?key={FIREBASE_API_KEY}"
 
     @classmethod
     def get_user_endpoint(cls) -> str:
@@ -109,6 +110,19 @@ class BoostcampAPI(object):
                 if isinstance(e, LoginFailedException):
                     raise
                 raise LoginFailedException(f"An error occurred during login: {str(e)}") from e
+
+    async def request_password_reset(self, email: str) -> Dict[str, Any]:
+        """Triggers a Firebase password reset email. Useful for OAuth users setting a password for the first time."""
+        payload = {
+            "requestType": "PASSWORD_RESET",
+            "email": email
+        }
+        async with ClientSession() as session:
+            async with session.post(BoostcampEndpoints.FIREBASE_RESET_URL, json=payload) as response:
+                if response.status != 200:
+                    error_text = await response.text()
+                    raise RequestFailedException(f"Reset request failed ({response.status}): {error_text}")
+                return await response.json()
 
     def save_session(self, filename: Optional[str] = None) -> None:
         """Saves the auth token to a pickle file."""

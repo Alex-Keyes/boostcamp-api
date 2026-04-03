@@ -14,6 +14,7 @@ Authentication is handled via a Firebase ID Token passed in the `authorization` 
 ### Automated Login (Re-engineered)
 The app uses the Firebase Identity Toolkit to exchange credentials for a token.
 
+#### 1. Login
 - **Endpoint:** `https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key=<API_KEY>`
 - **API Key:** `AIzaSyAEJcoGF-5ueF3bvaujcJm2PUV7RHKQwTw`
 - **Method:** `POST`
@@ -26,6 +27,17 @@ The app uses the Firebase Identity Toolkit to exchange credentials for a token.
   }
   ```
 - **Response:** Returns `idToken`, which is used in the `Authorization` header.
+
+#### 2. Request Password Reset (For OAuth Users)
+- **Endpoint:** `https://www.googleapis.com/identitytoolkit/v3/relyingparty/getOobConfirmationCode?key=<API_KEY>`
+- **Method:** `POST`
+- **Payload:**
+  ```json
+  {
+    "requestType": "PASSWORD_RESET",
+    "email": "USER_EMAIL"
+  }
+  ```
 
 ## Endpoints
 
