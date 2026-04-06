@@ -91,6 +91,8 @@ class BoostcampAPI(object):
         self._token = token
         self._timeout = timeout
         self._session_file = session_file
+        self._email: Optional[str] = None
+        self._password: Optional[str] = None
         
         self._headers = {
             "Accept": "*/*",
@@ -123,13 +125,20 @@ class BoostcampAPI(object):
         password: str,
         save_session: bool = True,
     ) -> None:
-        """Logs into Boostcamp using Firebase Identity Toolkit."""
+        """Logs into Boostcamp using Firebase Identity Toolkit.
+
+        Stores credentials in the session file so that the client can
+        automatically re-authenticate when the token expires.
+        """
+        self._email = email
+        self._password = password
+
         payload = {
             "email": email,
             "password": password,
             "returnSecureToken": True
         }
-        
+
         async with ClientSession() as session:
             try:
                 async with session.post(
@@ -140,10 +149,10 @@ class BoostcampAPI(object):
                     if response.status != 200:
                         error_text = await response.text()
                         raise LoginFailedException(f"Login failed ({response.status}): {error_text}")
-                    
+
                     data = await response.json()
                     self.set_token(data["idToken"])
-                    
+
                     if save_session:
                         self.save_session()
             except Exception as e:
@@ -165,34 +174,53 @@ class BoostcampAPI(object):
                 return await response.json()
 
     def save_session(self, filename: Optional[str] = None) -> None:
-        """Saves the auth token to a pickle file."""
+        """Saves the auth token and credentials to a pickle file."""
         if filename is None:
             filename = self._session_file
         filename = os.path.abspath(filename)
-        
-        session_data = {"token": self._token}
+
+        session_data = {
+            "token": self._token,
+            "email": self._email,
+            "password": self._password,
+        }
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as fh:
             pickle.dump(session_data, fh)
 
     def load_session(self, filename: Optional[str] = None) -> bool:
-        """Loads auth token from a pickle file."""
+        """Loads auth token and credentials from a pickle file."""
         if filename is None:
             filename = self._session_file
-        
+
         if not os.path.exists(filename):
             return False
-            
+
         with open(filename, "rb") as fh:
             data = pickle.load(fh)
             self.set_token(data["token"])
+            self._email = data.get("email")
+            self._password = data.get("password")
             return True
 
+    async def _re_login(self) -> bool:
+        """Attempt to re-login using stored credentials."""
+        if not self._email or not self._password:
+            return False
+        try:
+            await self.login(self._email, self._password)
+            return True
+        except LoginFailedException:
+            return False
+
     async def _post(self, endpoint: str, data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """Performs a POST request to a given endpoint."""
+        """Performs a POST request to a given endpoint.
+
+        Automatically re-authenticates and retries once if the token has expired.
+        """
         if data is None:
             data = {}
-            
+
         async with ClientSession(headers=self._headers) as session:
             try:
                 async with session.post(
@@ -204,6 +232,15 @@ class BoostcampAPI(object):
                     return await response.json()
             except ClientResponseError as e:
                 if e.status == 403:
+                    if await self._re_login():
+                        async with ClientSession(headers=self._headers) as retry_session:
+                            async with retry_session.post(
+                                endpoint,
+                                json=data,
+                                timeout=self._timeout
+                            ) as retry_response:
+                                retry_response.raise_for_status()
+                                return await retry_response.json()
                     raise BoostcampAuthException(f"Auth error (403): Your FirebaseIdToken may have expired.") from e
                 raise RequestFailedException(f"Request failed: {e.status} {e.message}") from e
             except Exception as e:
