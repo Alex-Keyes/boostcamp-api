@@ -19,6 +19,7 @@ class BoostcampEndpoints(object):
     FIREBASE_API_KEY = "AIzaSyAEJcoGF-5ueF3bvaujcJm2PUV7RHKQwTw"
     FIREBASE_LOGIN_URL = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword?key={FIREBASE_API_KEY}"
     FIREBASE_RESET_URL = f"https://www.googleapis.com/identitytoolkit/v3/relyingparty/getOobConfirmationCode?key={FIREBASE_API_KEY}"
+    FIREBASE_REFRESH_URL = f"https://securetoken.googleapis.com/v1/token?key={FIREBASE_API_KEY}"
 
     @classmethod
     def get_user_endpoint(cls) -> str:
@@ -93,6 +94,7 @@ class BoostcampAPI(object):
         self._session_file = session_file
         self._email: Optional[str] = None
         self._password: Optional[str] = None
+        self._refresh_token: Optional[str] = None
         
         self._headers = {
             "Accept": "*/*",
@@ -127,8 +129,9 @@ class BoostcampAPI(object):
     ) -> None:
         """Logs into Boostcamp using Firebase Identity Toolkit.
 
-        Stores credentials in the session file so that the client can
-        automatically re-authenticate when the token expires.
+        Captures the ID token and the long-lived refresh token. The refresh
+        token (not the password) is persisted to the session file so the
+        client can renew an expired ID token via the secure-token endpoint.
         """
         self._email = email
         self._password = password
@@ -152,6 +155,7 @@ class BoostcampAPI(object):
 
                     data = await response.json()
                     self.set_token(data["idToken"])
+                    self._refresh_token = data.get("refreshToken")
 
                     if save_session:
                         self.save_session()
@@ -174,22 +178,25 @@ class BoostcampAPI(object):
                 return await response.json()
 
     def save_session(self, filename: Optional[str] = None) -> None:
-        """Saves the auth token and credentials to a pickle file."""
+        """Saves the auth token and refresh token to a pickle file.
+
+        The plaintext password is intentionally never persisted; token renewal
+        relies on the Firebase refresh token instead.
+        """
         if filename is None:
             filename = self._session_file
         filename = os.path.abspath(filename)
 
         session_data = {
             "token": self._token,
-            "email": self._email,
-            "password": self._password,
+            "refresh_token": self._refresh_token,
         }
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "wb") as fh:
             pickle.dump(session_data, fh)
 
     def load_session(self, filename: Optional[str] = None) -> bool:
-        """Loads auth token and credentials from a pickle file."""
+        """Loads the auth token and refresh token from a pickle file."""
         if filename is None:
             filename = self._session_file
 
@@ -199,9 +206,39 @@ class BoostcampAPI(object):
         with open(filename, "rb") as fh:
             data = pickle.load(fh)
             self.set_token(data["token"])
-            self._email = data.get("email")
-            self._password = data.get("password")
+            self._refresh_token = data.get("refresh_token")
             return True
+
+    async def _refresh_session(self) -> bool:
+        """Exchange the stored refresh token for a fresh ID token.
+
+        Uses the Firebase secure-token endpoint, which is the Firebase-native
+        way to renew a short-lived ID token without re-sending credentials.
+        Returns True on success, False if there is no refresh token or the
+        exchange fails.
+        """
+        if not self._refresh_token:
+            return False
+
+        payload = {
+            "grant_type": "refresh_token",
+            "refresh_token": self._refresh_token,
+        }
+        try:
+            async with ClientSession() as session:
+                async with session.post(
+                    BoostcampEndpoints.FIREBASE_REFRESH_URL,
+                    data=payload,
+                    timeout=self._timeout,
+                ) as response:
+                    if response.status != 200:
+                        return False
+                    data = await response.json()
+                    self.set_token(data["id_token"])
+                    self._refresh_token = data.get("refresh_token", self._refresh_token)
+                    return True
+        except Exception:
+            return False
 
     async def _re_login(self) -> bool:
         """Attempt to re-login using stored credentials."""
@@ -232,7 +269,9 @@ class BoostcampAPI(object):
                     return await response.json()
             except ClientResponseError as e:
                 if e.status == 403:
-                    if await self._re_login():
+                    # Prefer the Firebase refresh-token exchange; fall back to a
+                    # password re-login only if credentials are still in memory.
+                    if await self._refresh_session() or await self._re_login():
                         async with ClientSession(headers=self._headers) as retry_session:
                             async with retry_session.post(
                                 endpoint,

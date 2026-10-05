@@ -26,9 +26,19 @@ The app uses the Firebase Identity Toolkit to exchange credentials for a token.
     "returnSecureToken": true
   }
   ```
-- **Response:** Returns `idToken`, which is used in the `Authorization` header.
+- **Response:** Returns `idToken` (used in the `Authorization` header) and a long-lived `refreshToken` (used to renew the ID token without re-sending credentials).
 
-#### 2. Request Password Reset (For OAuth Users)
+#### 2. Token Refresh
+Firebase ID tokens are short-lived (~1 hour). Instead of replaying the password, exchange the `refreshToken` at the secure-token endpoint.
+- **Endpoint:** `https://securetoken.googleapis.com/v1/token?key=<API_KEY>`
+- **Method:** `POST`
+- **Payload (form-encoded):**
+  ```
+  grant_type=refresh_token&refresh_token=<REFRESH_TOKEN>
+  ```
+- **Response:** Returns a fresh `id_token` and `refresh_token` (note the snake_case keys, unlike the login response).
+
+#### 3. Request Password Reset (For OAuth Users)
 - **Endpoint:** `https://www.googleapis.com/identitytoolkit/v3/relyingparty/getOobConfirmationCode?key=<API_KEY>`
 - **Method:** `POST`
 - **Payload:**
